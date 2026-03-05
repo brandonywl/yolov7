@@ -1,6 +1,6 @@
-# docker build -t yolov7 .
+# docker build -t yolov7-yolov7:latest .
 
-FROM nvcr.io/nvidia/pytorch:22.12-py3
+FROM nvcr.io/nvidia/pytorch:25.01-py3
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -12,7 +12,7 @@ ENV LANG=C.UTF-8
 ENV TZ=Asia/Singapore
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# ENV TORCH_CUDA_ARCH_LIST="7.5 8.6"
+# ENV TORCH_CUDA_ARCH_LIST="7.5 8.0 8.6 8.9 9.0 10.0 12.0"
 
 RUN apt-get -y update
 RUN apt-get -y upgrade
