@@ -8,4 +8,4 @@
 # 	-v $DATA:$DATA \
 # 	yolov7
 
-docker run -v ./:/workspace -it --rm --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 yolov7-yolov7:latest bash
+docker run -v ./:/workspace -it --rm --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 yolov7-inference:latest bash

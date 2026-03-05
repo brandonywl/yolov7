@@ -8,7 +8,7 @@ import torch
 from yolov7.yolov7 import YOLOv7
 
 
-imgpath = Path('test.jpg')
+imgpath = Path('/workspace/test.jpeg')
 if not imgpath.is_file():
     raise AssertionError(f'{str(imgpath)} not found')
 
@@ -16,8 +16,8 @@ output_folder = 'inference'
 Path(output_folder).mkdir(parents=True, exist_ok=True)
 
 yolov7 = YOLOv7(
-    weights=files('yolov7').joinpath('weights/yolov7_state.pt'),
-    cfg=files('yolov7').joinpath('cfg/deploy/yolov7.yaml'),
+    weights=files('yolov7').joinpath('weights/yolov7-w6_last_state.pt'),
+    cfg=files('yolov7').joinpath('cfg/deploy/yolov7-w6.yaml'),
     bgr=True,
     device='cuda',
     model_image_size=640,
