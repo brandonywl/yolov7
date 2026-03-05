@@ -36,7 +36,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     device = select_device('0', batch_size=1)
-    ckpt = torch.load(opt.training_ckpt, map_location=device)
+    ckpt = torch.load(opt.training_ckpt, map_location=device, weights_only=False)
     model = Model(opt.deploy_cfg, ch=3, nc=opt.nc).to(device)
 
     with open(opt.deploy_cfg) as f:

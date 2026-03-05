@@ -5,6 +5,10 @@
 1. Download pretrained weights from [here](https://github.com/WongKinYiu/yolov7?tab=readme-ov-file#transfer-learning) and put into `weights` folder
 1. Run the training script: `python3 train.py --workers 8 --device 0 --batch-size 8 --data data/coco128.yaml --img 640 640 --cfg cfg/training/yolov7.yaml --weights 'weights/yolov7_training.pt' --name <name> --hyp data/hyp.scratch.p5.yaml --exist-ok --epochs 100`
 1. Results will be stored in `runs/train/<name>` folder
+1. For the >w6 models, use the following command to run the training script: `python3 train_aux.py --workers 8 --device 0 --batch-size 8 --data data/coco128.yaml --img 640 640 --cfg cfg/training/yolov7-w6.yaml --weights 'yolov7/weights/yolov7-w6_training.pt' --name yolov7 --hyp data/hyp.scratch.p5.yaml --exist-ok --epochs 100`
+
+Note: If you do not have the coco128, follow the link at the top of the coco128.yaml to download it. Unzip it and mount it into the correct location in your run_docker.sh.
+
 
 ## Testing with COCO128 dataset
 

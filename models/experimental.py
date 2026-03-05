@@ -247,7 +247,7 @@ def attempt_load(weights, map_location=None):
     model = Ensemble()
     for w in weights if isinstance(weights, list) else [weights]:
         # attempt_download(w)
-        ckpt = torch.load(w, map_location=map_location)  # load
+        ckpt = torch.load(w, map_location=map_location, weights_only=False)  # load
         model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())  # FP32 model
     
     # Compatibility updates
@@ -274,7 +274,7 @@ def attempt_load_state_dict(models, weights, map_location=None):
     weights = weights if isinstance(weights, list) else [weights]
     class_names = []
     for i, w in enumerate(weights):
-        checkpoint = torch.load(w, map_location=map_location)
+        checkpoint = torch.load(w, map_location=map_location, weights_only=False)
         model = models[i]
         model.fuse()
         model.load_state_dict(checkpoint['state_dict'])
