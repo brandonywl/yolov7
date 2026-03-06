@@ -10,6 +10,12 @@
 Note: If you do not have the coco128, follow the link at the top of the coco128.yaml to download it. Unzip it and mount it into the correct location in your run_docker.sh.
 
 
+## Converting trained weights for inference
+
+1. Reparameterize the `last.pt` with the following function: `python reparameterization.py --model_arch yolov7-w6 --training_ckpt runs/train/yolov7/weights/last.pt --output_ckpt weights/yolov7_last.pt --deploy_cfg cfg/deploy/yolov7-w6.yaml --nc 80`
+1. Update `cfg/deploy/yolov7-w6.yaml` with the number of classes.
+1. Save pytorch state dicts `python save_state_dict.py --weights weights/yolov7_last.pt --save_path weights/yolov7_last_state.pt --cfg cfg/deploy/yolov7-w6.yaml`
+
 ## Testing with COCO128 dataset
 
 1. Build the docker image: `docker build -t yolov7_main .` OR load with `docker load -i yolov7_main.tar.gz`
