@@ -634,8 +634,8 @@ class IBin(nn.Module):  # pylint: disable=too-many-instance-attributes
         self.nc = nc  # number of classes
         self.bin_count = bin_count
 
-        self.w_bin_sigmoid = SigmoidBin(bin_count=self.bin_count, min=0.0, max=4.0)
-        self.h_bin_sigmoid = SigmoidBin(bin_count=self.bin_count, min=0.0, max=4.0)
+        self.w_bin_sigmoid = SigmoidBin(bin_count=self.bin_count, min_val=0.0, max_val=4.0)
+        self.h_bin_sigmoid = SigmoidBin(bin_count=self.bin_count, min_val=0.0, max_val=4.0)
         # classes, x,y,obj
         self.no = nc + 3 + \
             self.w_bin_sigmoid.get_length() + self.h_bin_sigmoid.get_length()   # w-bce, h-bce
