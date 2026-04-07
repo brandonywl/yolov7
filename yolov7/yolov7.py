@@ -1,3 +1,5 @@
+"""YOLOv7 object detection module."""
+
 import cv2
 import numpy as np
 import torch
@@ -6,12 +8,46 @@ from importlib_resources import files
 from yolov7.models.experimental import attempt_load_state_dict
 from yolov7.models.yolo import Model
 from yolov7.utils.datasets import letterbox
-from yolov7.utils.general import scale_coords, non_max_suppression, check_img_size
+from yolov7.utils.general import (
+    scale_coords,
+    non_max_suppression,
+    check_img_size,
+)
 from yolov7.utils.torch_utils import TracedModel
 
 
 @torch.no_grad()
-class YOLOv7:
+class YOLOv7:  # pylint: disable=too-many-instance-attributes
+    """YOLOv7 object detector class.
+
+    Attributes
+    ----------
+    bgr : bool
+        Whether input images are in BGR format
+    device : torch.device
+        Device to run inference on
+    conf_thresh : float
+        Confidence threshold for detections
+    nms_thresh : float
+        IoU threshold for non-maximum suppression
+    model_image_size : int
+        Input image size for the model
+    max_batch_size : int
+        Maximum batch size for inference
+    half : bool
+        Whether to use half precision
+    same_size : bool
+        Whether to pad all images to same size
+    weights : Path
+        Path to model weights
+    cfg : Path
+        Path to model configuration
+    trace : bool
+        Whether to trace the model
+    cudnn_benchmark : bool
+        Whether to use cuDNN benchmarking
+    """
+
     _defaults = {
         'bgr': True,
         'device': 'cuda',
@@ -28,17 +64,22 @@ class YOLOv7:
     }
 
     def __init__(self, **kwargs):
+        # pylint: disable=no-member
         self.__dict__.update(self._defaults)  # set up default values
         self.__dict__.update(kwargs)  # update with user overrides
 
         self.device, self.device_num = self._select_device(self.device)
 
         model = Model(self.cfg)
-        self.model, self.class_names = attempt_load_state_dict(model, self.weights, map_location=torch.device('cpu'))
+        self.model, self.class_names = attempt_load_state_dict(
+            model, self.weights, map_location=torch.device('cpu')
+        )
         self.model.to(self.device)
 
         self.model_stride = int(self.model.stride.max())  # model stride
-        self.model_image_size = check_img_size(self.model_image_size, s=self.model_stride)  # check img_size
+        self.model_image_size = check_img_size(
+            self.model_image_size, s=self.model_stride
+        )  # check img_size
 
         if self.trace:
             self.model = TracedModel(self.model, self.device, self.model_image_size)
@@ -54,7 +95,9 @@ class YOLOv7:
             torch.backends.cudnn.enabled = True
 
         # warm up
+        # pylint: disable=no-member
         self._detect([np.zeros((10, 10, 3), dtype=np.uint8)])
+        # pylint: enable=no-member
         print('Warmed up!')
 
     @staticmethod
@@ -63,17 +106,34 @@ class YOLOv7:
             if device.lower() not in ['cpu', 'cuda']:
                 raise ValueError(f'Device "{device}" not supported')
             return torch.device(device.lower()), None
-        else:
-            return torch.device(f'cuda:{device}'), int(device)
+        return torch.device(f'cuda:{device}'), int(device)
 
     def classname_to_idx(self, classname):
+        """Get the index of a class name.
+
+        Parameters
+        ----------
+        classname : str
+            Name of the class
+
+        Returns
+        -------
+        int
+            Index of the class in class_names
+        """
         return self.class_names.index(classname)
 
     def _detect(self, list_of_imgs):
+        # pylint: disable=no-member
         if self.bgr:
-            list_of_imgs = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in list_of_imgs]
+            list_of_imgs = [
+                cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in list_of_imgs
+            ]
 
-        resized = [letterbox(img, new_shape=self.model_image_size, auto=self.same_size, stride=self.model_stride)[0] for img in list_of_imgs]
+        resized = [
+            letterbox(img, new_shape=self.model_image_size, auto=self.same_size, stride=self.model_stride)[0]
+            for img in list_of_imgs
+        ]
         images = np.stack(resized, axis=0)
         images = np.divide(images, 255, dtype=np.float32)
         images = np.ascontiguousarray(images.transpose(0, 3, 1, 2))
@@ -82,6 +142,7 @@ class YOLOv7:
         batches = []
         for i in range(0, len(images), self.max_batch_size):
             these_imgs = torch.from_numpy(images[i:i+self.max_batch_size])
+        # pylint: enable=no-member
             if self.half:
                 these_imgs = these_imgs.half()
             batches.append(these_imgs)
@@ -105,21 +166,29 @@ class YOLOv7:
             del features
         return preds
 
-    def detect_get_box_in(self, images, box_format='ltrb', classes=None, buffer_ratio=0.0):
+    def detect_get_box_in(
+        self, images, box_format='ltrb', classes=None, buffer_ratio=0.0
+    ):
         '''
         Parameters
         ----------
         images : ndarray or List[ndarray]
             ndarray-like for single image or list of ndarray-like
         box_format : str, optional
-            string of characters representing format order, where l = left, t = top, r = right, b = bottom, w = width and h = height
+            string of characters representing format order, where 
+            l = left,
+            t = top,
+            r = right,
+            b = bottom,
+            w = width,
+            h = height
         classes : List[str], optional
             classes to focus on
         buffer_ratio : float, optional
             proportion of buffer around the width and height of the bounding box
         raw : bool, optional
             return raw inferences instead of detections after postprocessing
-        
+
         Returns
         ------
         If one ndarray given, this returns a list (boxes in one image) of tuple (box_infos, score, predicted_class),
@@ -134,9 +203,8 @@ class YOLOv7:
         if isinstance(images, list):
             if len(images) <= 0:
                 return None
-            else:
-                if not all(isinstance(im, np.ndarray) for im in images):
-                    raise AssertionError('all images must be np arrays')
+            if not all(isinstance(im, np.ndarray) for im in images):
+                raise AssertionError('all images must be np arrays')
         elif isinstance(images, np.ndarray):
             images = [images]
             single = True
@@ -147,14 +215,20 @@ class YOLOv7:
         res, input_shapes = self._detect(images)
         frame_shapes = [image.shape for image in images]
 
-        all_dets = self._postprocess(res, input_shapes=input_shapes, frame_shapes=frame_shapes, box_format=box_format, classes=classes, buffer_ratio=buffer_ratio)
+        all_dets = self._postprocess(
+            res,
+            input_shapes=input_shapes,
+            frame_shapes=frame_shapes,
+            box_format=box_format,
+            classes=classes,
+            buffer_ratio=buffer_ratio,
+        )
 
         if single:
             return all_dets[0]
-        else:
-            return all_dets
+        return all_dets
 
-    def get_detections_dict(self, frames, classes=None, buffer_ratio=0.0):
+    def get_detections_dict(self, frames, classes=None, buffer_ratio=0.0):  # pylint: disable=too-many-locals
         '''
         Parameters
         ----------
@@ -173,20 +247,47 @@ class YOLOv7:
 
         if frames is None or len(frames) == 0:
             return None
-        all_dets = self.detect_get_box_in(frames, box_format='tlbrwh', classes=classes, buffer_ratio=buffer_ratio)
-        
+        all_dets = self.detect_get_box_in(
+            frames, box_format='tlbrwh', classes=classes, buffer_ratio=buffer_ratio
+        )
+
         all_detections = []
         for dets in all_dets:
             detections = []
             for tlbrwh, confidence, label in dets:
                 top, left, bot, right, width, height = tlbrwh
-                detections.append({'label': label, 'confidence': confidence, 't': top, 'l': left, 'b': bot, 'r': right, 'w': width, 'h': height})
+                detections.append({
+                    'label': label,
+                    'confidence': confidence,
+                    't': top,
+                    'l': left,
+                    'b': bot,
+                    'r': right,
+                    'w': width,
+                    'h': height,
+                })
             all_detections.append(detections)
         return all_detections
 
-    def _postprocess(self, boxes, input_shapes, frame_shapes, box_format='ltrb', classes=None, buffer_ratio=0.0):
-        class_idxs = [self.classname_to_idx(name) for name in classes] if classes is not None else None
-        preds = non_max_suppression(boxes, self.conf_thresh, self.nms_thresh, classes=class_idxs)
+    def _postprocess(
+        self,
+        boxes,
+        input_shapes,
+        frame_shapes,
+        box_format='ltrb',
+        classes=None,
+        buffer_ratio=0.0,
+    ):  # pylint: disable=too-many-locals,too-many-arguments,too-many-positional-arguments
+        class_idxs = (
+            [self.classname_to_idx(name) for name in classes]
+            if classes is not None
+            else None
+        )
+        # pylint: disable=no-member
+        preds = non_max_suppression(
+            boxes, self.conf_thresh, self.nms_thresh, classes=class_idxs
+        )
+        # pylint: enable=no-member
 
         detections = []
         for i, frame_bbs in enumerate(preds):
@@ -195,9 +296,11 @@ class YOLOv7:
                 continue
 
             im_height, im_width, _ = frame_shapes[i]
-            
+
             # Rescale preds from input size to frame size
-            frame_bbs[:, :4] = scale_coords(input_shapes[i][1:], frame_bbs[:, :4], frame_shapes[i]).round()
+            frame_bbs[:, :4] = scale_coords(
+                input_shapes[i][1:], frame_bbs[:, :4], frame_shapes[i]
+            ).round()
 
             frame_dets = []
             for *xyxy, cls_conf, cls_id in frame_bbs:
@@ -208,7 +311,7 @@ class YOLOv7:
                 top = int(xyxy[1])
                 right = int(xyxy[2])
                 bottom = int(xyxy[3])
-                
+
                 width = right - left + 1
                 height = bottom - top + 1
                 width_buffer = width * buffer_ratio
@@ -219,12 +322,14 @@ class YOLOv7:
                 bottom = min(im_height - 1.0, bottom + 0.5*height_buffer)
                 right = min(im_width - 1.0, right + 0.5*width_buffer)
 
-                box_attr = {'t': int(round(top)),
-                            'l': int(round(left)),
-                            'b': int(round(bottom)),
-                            'r': int(round(right)),
-                            'w': int(round(width+width_buffer)),
-                            'h': int(round(height+height_buffer))}
+                box_attr = {
+                    't': int(round(top)),
+                    'l': int(round(left)),
+                    'b': int(round(bottom)),
+                    'r': int(round(right)),
+                    'w': int(round(width+width_buffer)),
+                    'h': int(round(height+height_buffer)),
+                }
                 box_infos = [box_attr[c] for c in box_format]
                 if not len(box_infos) > 0:
                     raise AssertionError('box infos is blank')
