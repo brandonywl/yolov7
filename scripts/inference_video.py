@@ -1,6 +1,8 @@
+"""Script for running inference on a video using YOLOv7."""
 import math
-from importlib_resources import files
 from pathlib import Path
+
+from importlib_resources import files
 
 import cv2
 
@@ -14,7 +16,7 @@ if not vid_path.is_file():
 output_dir = Path('inference')
 output_dir.mkdir(parents=True, exist_ok=True)
 out_fp = output_dir / f'{vid_path.stem}_inference.avi'
-display_video = False
+DISPLAY_VIDEO = False
 
 yolov7 = YOLOv7(
     weights=files('yolov7').joinpath('weights/yolov7_state.pt'),
@@ -40,7 +42,7 @@ vid_width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
 vid_height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 out_track = cv2.VideoWriter(str(out_fp), cv2.VideoWriter_fourcc(*'MJPG'), fps, (vid_width, vid_height))
 
-if display_video:
+if DISPLAY_VIDEO:
     cv2.namedWindow('YOLOv7', cv2.WINDOW_NORMAL)
 
 while True:
@@ -59,10 +61,10 @@ while True:
 
     out_track.write(show_frame)
 
-    if display_video:
+    if DISPLAY_VIDEO:
         cv2.imshow('YOLOv7', show_frame)
         if cv2.waitKey(1) == ord('q'):
             break
 
-if display_video:
+if DISPLAY_VIDEO:
     cv2.destroyAllWindows()

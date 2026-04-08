@@ -1,6 +1,8 @@
-from importlib_resources import files
+"""Script for running inference on a single image using YOLOv7."""
 from pathlib import Path
 from time import perf_counter
+
+from importlib_resources import files
 
 import cv2
 import torch
@@ -12,8 +14,8 @@ imgpath = Path('/workspace/test.jpeg')
 if not imgpath.is_file():
     raise AssertionError(f'{str(imgpath)} not found')
 
-output_folder = 'inference'
-Path(output_folder).mkdir(parents=True, exist_ok=True)
+OUTPUT_FOLDER = 'inference'
+Path(OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
 
 yolov7 = YOLOv7(
     weights=files('yolov7').joinpath('weights/yolov7-w6_last_state.pt'),
@@ -30,12 +32,12 @@ yolov7 = YOLOv7(
 )
 
 img = cv2.imread(str(imgpath))
-bs = 512
-imgs = [img for _ in range(bs)]
+BATCH_SIZE = 512
+imgs = [img for _ in range(BATCH_SIZE)]
 
-n = 3
+NUM_ITERATIONS = 3
 dur = 0
-for i in range(n):
+for i in range(NUM_ITERATIONS):
     torch.cuda.synchronize()
     tic = perf_counter()
     dets = yolov7.detect_get_box_in(imgs, box_format='ltrb', classes=None, buffer_ratio=0.0)[0]
@@ -45,7 +47,7 @@ for i in range(n):
     toc = perf_counter()
     if i > 1:
         dur += toc - tic
-print(f'Average time taken: {(dur/n*1000):0.2f}ms')
+print(f'Average time taken: {(dur/NUM_ITERATIONS*1000):0.2f}ms')
 
 draw_frame = img.copy()
 for det in dets:
@@ -55,5 +57,5 @@ for det in dets:
     cv2.rectangle(draw_frame, (l, t), (r, b), (255, 255, 0), 1)
     cv2.putText(draw_frame, class_, (l, t-8), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
 
-output_path = Path(output_folder) / 'test_out.jpg'
+output_path = Path(OUTPUT_FOLDER) / 'test_out.jpg'
 cv2.imwrite(str(output_path), draw_frame)
