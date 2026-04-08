@@ -1,28 +1,52 @@
+"""Experimental models for YOLOv7."""
+
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
 from yolov7.models.common import Conv
 
 
 class CrossConv(nn.Module):
-    # Cross Convolution Downsample
-    def __init__(self, c1, c2, k=3, s=1, g=1, e=1.0, shortcut=False):
-        # ch_in, ch_out, kernel, stride, groups, expansion, shortcut
-        super(CrossConv, self).__init__()
+    """Cross Convolution Downsample."""
+
+    def __init__(self, c1, c2, k=3, s=1, g=1, e=1.0, shortcut=False):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+        """Initialize CrossConv.
+
+        Args:
+            c1: Input channels
+            c2: Output channels
+            k: Kernel size
+            s: Stride
+            g: Groups
+            e: Expansion factor
+            shortcut: Use shortcut connection
+        """
+        super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, (1, k), (1, s))
         self.cv2 = Conv(c_, c2, (k, 1), (s, 1), g=g)
         self.add = shortcut and c1 == c2
 
     def forward(self, x):
+        """Forward pass through CrossConv."""
         return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
 
 
 class MixConv2d(nn.Module):
-    # Mixed Depthwise Conv https://arxiv.org/abs/1907.09595
-    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):
-        super(MixConv2d, self).__init__()
+    """Mixed Depthwise Conv https://arxiv.org/abs/1907.09595."""
+
+    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+        """Initialize MixConv2d.
+
+        Args:
+            c1: Input channels
+            c2: Output channels
+            k: Kernel sizes
+            s: Stride
+            equal_ch: Equal channels per group
+        """
+        super().__init__()
         groups = len(k)
         if equal_ch:  # equal c_ per group
             i = torch.linspace(0, groups - 1E-6, c2).floor()  # c2 indices
@@ -40,15 +64,27 @@ class MixConv2d(nn.Module):
         self.act = nn.LeakyReLU(0.1, inplace=True)
 
     def forward(self, x):
+        """Forward pass through MixConv2d."""
         return x + self.act(self.bn(torch.cat([m(x) for m in self.m], 1)))
 
 
 class Ensemble(nn.ModuleList):
-    # Ensemble of models
+    """Ensemble of models."""
+
     def __init__(self):
-        super(Ensemble, self).__init__()
+        """Initialize Ensemble."""
+        super().__init__()
 
     def forward(self, x, augment=False):
+        """Forward pass through Ensemble.
+
+        Args:
+            x: Input tensor
+            augment: Whether to augment
+
+        Returns:
+            Tuple of (output, None)
+        """
         y = []
         for module in self:
             y.append(module(x, augment)[0])
@@ -59,7 +95,16 @@ class Ensemble(nn.ModuleList):
 
 
 def attempt_load_state_dict(models, weights, map_location=None):
-    # Loads an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a
+    """Load an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a.
+
+    Args:
+        models: Model or list of models
+        weights: Weight file path or list of paths
+        map_location: Device to load weights to
+
+    Returns:
+        Loaded model(s) and class names
+    """
     ensemble_model = Ensemble()
     models = models if isinstance(models, list) else [models]
     weights = weights if isinstance(weights, list) else [weights]
@@ -75,17 +120,17 @@ def attempt_load_state_dict(models, weights, map_location=None):
 
     # Compatibility updates
     for m in ensemble_model.modules():
-        if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU]:
+        if isinstance(m, (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU)):
             m.inplace = True  # pytorch 1.7.0 compatibility
-        elif type(m) is nn.Upsample:
+        elif isinstance(m, nn.Upsample):
             m.recompute_scale_factor = None  # torch 1.11.0 compatibility
-        elif type(m) is Conv:
-            m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
+        elif isinstance(m, Conv):
+            m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility pylint: disable=protected-access
 
     if len(ensemble_model) == 1:
         return ensemble_model[-1], class_names[-1]  # return model
-    else:
-        print('Ensemble created with %s\n' % weights)
-        for k in ['names', 'stride']:
-            setattr(ensemble_model, k, getattr(ensemble_model[-1], k))
-        return ensemble_model, class_names  # return ensemble
+
+    print(f"Ensemble created with {weights}")
+    for k in ['names', 'stride']:
+        setattr(ensemble_model, k, getattr(ensemble_model[-1], k))
+    return ensemble_model, class_names  # return ensemble

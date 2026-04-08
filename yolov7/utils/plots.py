@@ -1,4 +1,4 @@
-# # Plotting utils
+"""Plotting utils"""
 
 import random
 
@@ -12,7 +12,11 @@ matplotlib.use('Agg')  # for writing to files only
 
 
 def color_list():
-    # Return first 10 plt colors as (r,g,b) https://stackoverflow.com/questions/51350872/python-from-color-name-to-rgb
+    """Return first 10 plt colors as (r,g,b).
+
+    Returns:
+        List of RGB color tuples
+    """
     def hex2rgb(h):
         return tuple(int(h[1 + i:1 + i + 2], 16) for i in (0, 2, 4))
 
@@ -20,7 +24,15 @@ def color_list():
 
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=3):
-    # Plots one bounding box on image img
+    """Plot one bounding box on image img.
+
+    Args:
+        x: Bounding box coordinates [x1, y1, x2, y2]
+        img: Image to draw on
+        color: Color for the box (R, G, B)
+        label: Label to display
+        line_thickness: Thickness of the box line
+    """
     tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
     color = color or [random.randint(0, 255) for _ in range(3)]
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
