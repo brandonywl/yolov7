@@ -1,4 +1,5 @@
 """Script for running inference on a video using YOLOv7."""
+# pylint: disable=import-error,no-name-in-module
 import math
 from pathlib import Path
 

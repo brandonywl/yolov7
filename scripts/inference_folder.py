@@ -1,4 +1,5 @@
 """Script for running inference on a folder of images using YOLOv7."""
+# pylint: disable=import-error,no-name-in-module
 from pathlib import Path
 
 from importlib_resources import files

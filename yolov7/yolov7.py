@@ -1,5 +1,5 @@
 """YOLOv7 object detection module."""
-
+# pylint: disable=import-error,no-name-in-module
 import cv2
 import numpy as np
 import torch
@@ -277,7 +277,7 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
         box_format='ltrb',
         classes=None,
         buffer_ratio=0.0,
-    ):  # pylint: disable=too-many-locals,too-many-arguments,too-many-positional-arguments
+    ):  # pylint: disable=too-many-locals,too-many-arguments
         class_idxs = (
             [self.classname_to_idx(name) for name in classes]
             if classes is not None

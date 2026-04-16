@@ -100,8 +100,8 @@ def box_iou(box1, box2):
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,  # pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals, too-many-branches, too-many-statements
-                        labels=()):  # pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals, too-many-branches, too-many-statements
+def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,  # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
+                        labels=()):  # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
     """Run Non-Maximum Suppression (NMS) on inference results.
 
     Args:

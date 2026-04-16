@@ -1,4 +1,5 @@
 """Script for running inference on a single image using YOLOv7."""
+# pylint: disable=import-error,no-name-in-module
 from pathlib import Path
 from time import perf_counter
 
@@ -36,7 +37,7 @@ BATCH_SIZE = 512
 imgs = [img for _ in range(BATCH_SIZE)]
 
 NUM_ITERATIONS = 3
-dur = 0
+DUR = 0
 for i in range(NUM_ITERATIONS):
     torch.cuda.synchronize()
     tic = perf_counter()
@@ -46,8 +47,8 @@ for i in range(NUM_ITERATIONS):
     torch.cuda.synchronize()
     toc = perf_counter()
     if i > 1:
-        dur += toc - tic
-print(f'Average time taken: {(dur/NUM_ITERATIONS*1000):0.2f}ms')
+        DUR += toc - tic
+print(f'Average time taken: {(DUR/NUM_ITERATIONS*1000):0.2f}ms')
 
 draw_frame = img.copy()
 for det in dets:

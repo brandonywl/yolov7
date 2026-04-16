@@ -27,7 +27,7 @@ class SigmoidBin(nn.Module):
     stride = None  # strides computed during build
     export = False  # onnx export
 
-    # pylint: disable=too-many-arguments, too-many-positional-arguments
+    # pylint: disable=too-many-arguments
     def __init__(self, bin_count=10, min_val=0.0, max_val=1.0, reg_scale=2.0,
                  use_loss_regression=True, use_fw_regression=True,
                  BCE_weight=1.0, smooth_eps=0.0):

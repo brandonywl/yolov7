@@ -1,4 +1,4 @@
-"""YOLOv7 model module."""  # pylint: disable=too-many-lines,unsubscriptable-object
+"""YOLOv7 model module."""  # pylint: disable=too-many-lines,unsubscriptable-object,import-error,no-name-in-module
 import ast
 import logging
 import math
@@ -338,7 +338,7 @@ class IKeypoint(nn.Module):  # pylint: disable=too-many-instance-attributes,too-
     stride = None  # strides computed during build
     export = False  # onnx export
 
-    def __init__(self, nc=80, anchors=(), nkpt=17, ch=(), inplace=True, dw_conv_kpt=False):  # detection layer  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def __init__(self, nc=80, anchors=(), nkpt=17, ch=(), inplace=True, dw_conv_kpt=False):  # detection layer  # pylint: disable=too-many-arguments
         super().__init__()
         self.nc = nc  # number of classes
         self.nkpt = nkpt

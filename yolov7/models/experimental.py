@@ -1,5 +1,5 @@
 """Experimental models for YOLOv7."""
-
+# pylint: disable=import-error,no-name-in-module
 import numpy as np
 import torch
 from torch import nn
@@ -10,7 +10,7 @@ from yolov7.models.common import Conv
 class CrossConv(nn.Module):
     """Cross Convolution Downsample."""
 
-    def __init__(self, c1, c2, k=3, s=1, g=1, e=1.0, shortcut=False):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+    def __init__(self, c1, c2, k=3, s=1, g=1, e=1.0, shortcut=False):  # pylint: disable=too-many-arguments
         """Initialize CrossConv.
 
         Args:
@@ -36,7 +36,7 @@ class CrossConv(nn.Module):
 class MixConv2d(nn.Module):
     """Mixed Depthwise Conv https://arxiv.org/abs/1907.09595."""
 
-    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):  # pylint: disable=too-many-arguments
         """Initialize MixConv2d.
 
         Args:

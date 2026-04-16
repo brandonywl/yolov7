@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 
-def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
+def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):  # pylint: disable=too-many-arguments,too-many-locals
     """Resize and pad image while meeting stride-multiple constraints."""
     shape = img.shape[:2]  # current shape [height, width]
     if isinstance(new_shape, int):
