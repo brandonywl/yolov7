@@ -137,7 +137,7 @@ def copy_attr(a, b, include=(), exclude=()):
         setattr(a, k, v)
 
 # pylint: disable=too-few-public-methods
-class BatchNormXd(torch.nn.modules.batchnorm.BatchNorm):
+class BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
     """BatchNorm class that accepts any number of dimensions."""
 
     def _check_input_dim(self, _):

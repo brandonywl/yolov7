@@ -1,5 +1,4 @@
 """YOLOv7 model module."""  # pylint: disable=too-many-lines,unsubscriptable-object,import-error,no-name-in-module
-import ast
 import logging
 import math
 from copy import deepcopy
@@ -62,8 +61,6 @@ from yolov7.models.common import (  # pylint: disable=no-name-in-module
     autoShape,
     ImplicitA,
     ImplicitM,
-    MixConv2d,
-    CrossConv,
     RobustConv,
     RobustConv2,
     Concat,
@@ -74,6 +71,7 @@ from yolov7.models.common import (  # pylint: disable=no-name-in-module
     Contract,
     Expand
 )
+from yolov7.models.experimental import CrossConv, MixConv2d
 
 from yolov7.utils.autoanchor import check_anchor_order
 from yolov7.utils.general import make_divisible
@@ -93,6 +91,42 @@ try:
     import thop  # for FLOPS computation
 except ImportError:
     thop = None
+
+
+def _resolve_model_value(value, context=None):
+    """Resolve YAML model values into Python objects when needed."""
+    if not isinstance(value, str):
+        return value
+
+    if context and value in context:
+        return context[value]
+
+    if value == 'None':
+        return None
+    if value == 'True':
+        return True
+    if value == 'False':
+        return False
+
+    if value.startswith('nn.'):
+        return getattr(nn, value.split('.', maxsplit=1)[1])
+
+    global_value = globals().get(value)
+    if global_value is not None:
+        return global_value
+
+    # Leave plain strings such as "nearest" untouched.
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    try:
+        return float(value)
+    except ValueError:
+        pass
+
+    return value
 
 
 class Detect(nn.Module):
@@ -1007,17 +1041,16 @@ def parse_model(d, ch):  # model_dict, input_channels(3)  # pylint: disable=too-
     anchors, nc, gd, gw = d['anchors'], d['nc'], d['depth_multiple'], d['width_multiple']
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
     no = na * (nc + 5)  # number of outputs = anchors * (classes + 5)
+    context = {
+        'anchors': anchors,
+        'nc': nc,
+    }
 
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
-        # m = eval(m) if isinstance(m, str) else m  # eval strings
-        m = ast.literal_eval(m) if isinstance(m, str) else m
+        m = _resolve_model_value(m, context)
         for j, a in enumerate(args):
-            try:
-                # args[j] = eval(a) if isinstance(a, str) else a  # eval strings
-                args[j] = ast.literal_eval(a) if isinstance(a, str) else a
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
+            args[j] = _resolve_model_value(a, context)
 
         n = max(round(n * gd), 1) if n > 1 else n  # depth gain
         if m in [nn.Conv2d, Conv, RobustConv, RobustConv2, DWConv, GhostConv, RepConv, RepConv_OREPA, DownC,

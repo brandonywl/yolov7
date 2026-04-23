@@ -15,8 +15,6 @@ from yolov7.utils.general import (
 )
 from yolov7.utils.torch_utils import TracedModel
 
-
-@torch.no_grad()
 class YOLOv7:  # pylint: disable=too-many-instance-attributes
     """YOLOv7 object detector class.
 
@@ -63,6 +61,7 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
         'cudnn_benchmark': False,
     }
 
+    @torch.no_grad()
     def __init__(self, **kwargs):
         # pylint: disable=no-member
         self.__dict__.update(self._defaults)  # set up default values
