@@ -116,8 +116,7 @@ def scale_img(img, ratio=1.0, same_shape=False, gs=32):  # img(16,3,256,416)
     img = F.interpolate(img, size=s, mode='bilinear', align_corners=False)  # resize
     if not same_shape:  # pad/crop img
         h, w = [math.ceil(x * ratio / gs) * gs for x in (h, w)]
-    return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean  # pylint: disable=not-callable
-
+    return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean  # pylint not-callable : F.pad(img, ...) is flagged as not callable because PyTorch's C-extension bindings for torch.nn.functional aren't fully visible to pylint's static analysis — it is callable at runtime.
 
 def copy_attr(a, b, include=(), exclude=()):
     """Copy attributes from b to a, with optional include/exclude lists.
@@ -136,7 +135,7 @@ def copy_attr(a, b, include=(), exclude=()):
             continue
         setattr(a, k, v)
 
-# pylint: disable=too-few-public-methods
+# pylint too-few-public-methods : The class below (line 139) is a small utility with only one or two methods — a valid and intentional minimal design, not an incomplete class.
 class BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
     """BatchNorm class that accepts any number of dimensions."""
 
@@ -150,7 +149,7 @@ class BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
         # (unfortunately, SyncBatchNorm does not store the original class - if it did
         #  we could return the one that was originally created)
         return
-# pylint: disable=attribute-defined-outside-init
+# pylint attribute-defined-outside-init : An attribute is assigned inside a method other than __init__, likely because it depends on runtime state (e.g. device or input shape) that isn't known at construction time — an intentional deferred initialization.
 def revert_sync_batchnorm(module):
     """Revert SyncBatchNorm to regular BatchNorm.
     
@@ -213,13 +212,13 @@ class TracedModel(nn.Module):
         self.detect_layer.to(device)
         print(" model is traced! \n")
 
-    def forward(self, x, augment=None, profile=None):  # pylint: disable=unused-argument
+    def forward(self, x, augment=None, profile=None):  #pylint unused-argument : augment and profile are accepted in forward to maintain a consistent call signature with other model variants, even though this particular class doesn't use them.
         """Forward pass through the traced model.
         
         Args:
             x: Input tensor
-            augment: If True, apply test-time augmentation (unused)
-            profile: If True, enable profiling (unused)
+            augment: If True, apply test-time augmentation 
+            profile: If True, enable profiling
         
         Returns:
             Model output

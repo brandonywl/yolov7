@@ -1,5 +1,8 @@
 """Experimental models for YOLOv7."""
-# pylint: disable=import-error,no-name-in-module
+# pylint import-error : Optional or environment-specific imports (e.g. model components from sibling modules) may not resolve in all environments; pylint flags them even when they are valid at runtime.
+# pylint no-name-in-module : Subattributes of those imports can't be statically resolved by pylint from the C-extension or dynamic module structure.
+# pylint too-many-arguments : MixConv2d and CrossConv __init__ methods take 5–7 parameters (c1, c2, k, s, g, e, shortcut) — standard in neural network layer definitions.
+
 import numpy as np
 import torch
 from torch import nn
@@ -10,7 +13,7 @@ from yolov7.models.common import Conv
 class CrossConv(nn.Module):
     """Cross Convolution Downsample."""
 
-    def __init__(self, c1, c2, k=3, s=1, g=1, e=1.0, shortcut=False):  # pylint: disable=too-many-arguments
+    def __init__(self, c1, c2, k=3, s=1, g=1, e=1.0, shortcut=False):
         """Initialize CrossConv.
 
         Args:
@@ -32,13 +35,11 @@ class CrossConv(nn.Module):
         """Forward pass through CrossConv."""
         return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
 
-
 class MixConv2d(nn.Module):
     """Mixed Depthwise Conv https://arxiv.org/abs/1907.09595."""
 
-    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):  # pylint: disable=too-many-arguments
+    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):
         """Initialize MixConv2d.
-
         Args:
             c1: Input channels
             c2: Output channels
@@ -125,7 +126,7 @@ def attempt_load_state_dict(models, weights, map_location=None):
         elif isinstance(m, nn.Upsample):
             m.recompute_scale_factor = None  # torch 1.11.0 compatibility
         elif isinstance(m, Conv):
-            m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility pylint: disable=protected-access
+            m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility # pylint protected-access : m._non_persistent_buffers_set = set() directly sets a private PyTorch attribute to restore compatibility with PyTorch 1.6.0, where nn.Module lacks this attribute — a deliberate monkey-patch, not accidental access.
 
     if len(ensemble_model) == 1:
         return ensemble_model[-1], class_names[-1]  # return model

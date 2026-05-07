@@ -1,7 +1,18 @@
 """YOLOv7 model common modules and layers."""
-# pylint: disable=too-many-lines,too-many-arguments
-# pylint: disable=too-many-instance-attributes,too-many-locals,too-many-statements
-# pylint: disable=duplicate-code,import-error,no-name-in-module
+# pylint too-many-lines : The file is very large (2300+ lines), combining many model building blocks that logically belong together.
+# pylint too-many-arguments : Many __init__ methods take 7–10+ parameters (e.g. c1, c2, k, s, p, g, act, ...) — standard in neural network layer definitions.
+# pylint too-many-instance-attributes : Model classes store many tensors and submodules as attributes (weights, batch norms, branches, etc.) — unavoidable in multi-branch architectures like RepConv and OREPA.
+# pylint too-many-locals : Weight fusion methods (e.g. get_equivalent_kernel_bias) decompose into many intermediate tensors for mathematical clarity.
+# pylint too-many-statements : The same fusion and forward methods execute long sequential chains of tensor operations that cannot be meaningfully split.
+# pylint duplicate-code : Conv-BN-Act patterns repeat intentionally across different block classes (e.g. Conv, RepConv, OREPA) as each is a standalone module.
+# pylint import-error : Optional dependencies like timm may not be installed in all environments; the imports are guarded but pylint still flags them.
+# pylint no-name-in-module : Submodule attributes from those optional imports (e.g. timm.models.layers) can't be statically resolved by pylint.
+# pylint unused-argument : Parameters like p, g, act appear in a shared API signature across all block classes even when a specific subclass doesn't use them, to keep call sites consistent.
+# pylint line-too-long : Long __init__ signatures for CNeB and CNeB_v2 that can't be shortened without sacrificing readability.
+# pylint invalid-name : Names follow ML paper conventions — DW (depthwise), L2, v2, OREPA — or camelCase class names that violate pylint's snake_case rule but match the source papers.
+# pylint not-callable : F.pad and F.conv2d are flagged as not callable because PyTorch's C-extension bindings aren't fully visible to pylint's static analysis — they are callable at runtime.
+
+
 import math
 from pathlib import Path
 
@@ -21,7 +32,7 @@ from yolov7.utils.torch_utils import time_synchronized
 try:
     from timm.models.layers import DropPath
 except ImportError:
-    class DropPath(nn.Module):  # pylint: disable=too-few-public-methods
+    class DropPath(nn.Module):  # pylint too-few-public-methods : DropPath is a small utility nn.Module with only a forward method — the minimal valid PyTorch pattern.
         """Drop paths (Stochastic Depth) per sample (fallback stub)."""
         def __init__(self, drop_prob=None):
             super().__init__()
@@ -148,8 +159,8 @@ class Conv(nn.Module):
 class RobustConv(nn.Module):
     """Robust convolution (use high kernel size 7-11 for: downsampling and other layers). Train for 300 - 450 epochs."""
 
-    def __init__(self, c1, c2, k=7, s=1, p=None, g=1, act=True,  # pylint: disable=unused-argument
-                 layer_scale_init_value=1e-6):  # pylint: disable=line-too-long
+    def __init__(self, c1, c2, k=7, s=1, p=None, g=1, act=True,
+                 layer_scale_init_value=1e-6):
         super().__init__()
         self.conv_dw = Conv(c1, c1, k=k, s=s, p=p, g=c1, act=act)
         self.conv1x1 = nn.Conv2d(c1, c2, 1, 1, 0, groups=1, bias=True)
@@ -167,8 +178,8 @@ class RobustConv(nn.Module):
 class RobustConv2(nn.Module):
     """Robust convolution 2 (use [32, 5, 2] or [32, 7, 4] or [32, 11, 8] for one of the paths in CSP)."""
 
-    def __init__(self, c1, c2, k=7, s=4, p=None, g=1, act=True,  # pylint: disable=unused-argument
-                 layer_scale_init_value=1e-6):  # pylint: disable=line-too-long
+    def __init__(self, c1, c2, k=7, s=4, p=None, g=1, act=True,
+                 layer_scale_init_value=1e-6):
         super().__init__()
         self.conv_strided = Conv(c1, c1, k=k, s=s, p=p, g=c1, act=act)
         self.conv_deconv = nn.ConvTranspose2d(
@@ -184,8 +195,7 @@ class RobustConv2(nn.Module):
             x = x.mul(self.gamma.reshape(1, -1, 1, 1))
         return x
 
-
-def DWConv(c1, c2, k=1, s=1, act=True):  # pylint: disable=invalid-name
+def DWConv(c1, c2, k=1, s=1, act=True):
     """Depthwise convolution."""
     return Conv(c1, c2, k, s, g=math.gcd(c1, c2), act=act)
 
@@ -208,7 +218,7 @@ class GhostConv(nn.Module):
 class Stem(nn.Module):
     """Stem layer."""
 
-    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
         c_ = int(c2/2)  # hidden channels
         self.cv1 = Conv(c1, c_, 3, 2)
@@ -226,7 +236,7 @@ class Stem(nn.Module):
 class DownC(nn.Module):
     """Spatial pyramid pooling layer used in YOLOv3-SPP."""
 
-    def __init__(self, c1, c2, n=1, k=2):  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, k=2):
         super().__init__()
         c_ = int(c1)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -314,7 +324,7 @@ class Ghost(nn.Module):
 class SPPCSPC(nn.Module):
     """CSP https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, k=(5, 9, 13)):  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, k=(5, 9, 13)):
         super().__init__()
         c_ = int(2 * c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -381,7 +391,7 @@ class BottleneckCSPA(nn.Module):
 class BottleneckCSPB(nn.Module):
     """CSP https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -597,7 +607,7 @@ class RepConv(nn.Module):
         """Pad 1x1 kernel to 3x3."""
         if kernel1x1 is None:
             return 0
-        return F.pad(kernel1x1, [1, 1, 1, 1])  # pylint: disable=not-callable
+        return F.pad(kernel1x1, [1, 1, 1, 1])  #
 
     def _fuse_bn_tensor(self, branch):
         """Fuse batch norm tensor."""
@@ -620,7 +630,7 @@ class RepConv(nn.Module):
                 for i in range(self.in_channels):
                     kernel_value[i, i % input_dim, 1, 1] = 1
                 self.register_buffer("id_tensor", torch.from_numpy(kernel_value))
-                self.id_tensor = self.id_tensor.to(branch.weight.device)  # pylint: disable=attribute-defined-outside-init
+                self.id_tensor = self.id_tensor.to(branch.weight.device)  # pylint attribute-defined-outside-init : self.id_tensor is lazily created on first use inside a non-__init__ method so it can be placed on the correct device, which isn't known at construction time.
             kernel = self.id_tensor
             running_mean = branch.running_mean
             running_var = branch.running_var
@@ -674,7 +684,7 @@ class RepConv(nn.Module):
 
         self.rbr_1x1 = self.fuse_conv_bn(self.rbr_1x1[0], self.rbr_1x1[1])
         rbr_1x1_bias = self.rbr_1x1.bias
-        weight_1x1_expanded = F.pad(self.rbr_1x1.weight, [1, 1, 1, 1])  # pylint: disable=not-callable
+        weight_1x1_expanded = F.pad(self.rbr_1x1.weight, [1, 1, 1, 1])  #
 
         # Fuse self.rbr_identity
         if isinstance(self.rbr_identity, (nn.BatchNorm2d, nn.modules.batchnorm.SyncBatchNorm)):
@@ -698,7 +708,7 @@ class RepConv(nn.Module):
 
             identity_conv_1x1 = self.fuse_conv_bn(identity_conv_1x1, self.rbr_identity)
             bias_identity_expanded = identity_conv_1x1.bias
-            weight_identity_expanded = F.pad(identity_conv_1x1.weight, [1, 1, 1, 1])  # pylint: disable=not-callable
+            weight_identity_expanded = F.pad(identity_conv_1x1.weight, [1, 1, 1, 1])  #
         else:
             # print(f"fuse: rbr_identity != BatchNorm2d, rbr_identity = {self.rbr_identity}")
             bias_identity_expanded = torch.nn.Parameter(torch.zeros_like(rbr_1x1_bias))
@@ -971,7 +981,7 @@ class NMS(nn.Module):
         return non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, classes=self.classes)
 
 
-class autoShape(nn.Module):  # pylint: disable=invalid-name
+class autoShape(nn.Module):
     """Input-robust model wrapper for passing cv2/np/PIL/torch inputs. Includes preprocessing, inference and NMS."""
 
     conf = 0.25  # NMS confidence threshold
@@ -1152,7 +1162,7 @@ class Classify(nn.Module):
 
 ##### orepa #####
 
-def transI_fusebn(kernel, bn):  # pylint: disable=invalid-name
+def transI_fusebn(kernel, bn):
     """Fuse batch norm into convolution."""
     gamma = bn.weight
     std = (bn.running_var + bn.eps).sqrt()
@@ -1205,13 +1215,13 @@ class ConvBN(nn.Module):
         self.conv = conv
 
 
-class OREPA_3x3_RepConv(nn.Module):  # pylint: disable=invalid-name
+class OREPA_3x3_RepConv(nn.Module):
     """OREPA 3x3 RepConv."""
 
     def __init__(self, in_channels, out_channels, kernel_size,
                  stride=1, padding=0, dilation=1, groups=1,
                  internal_channels_1x1_3x3=None,
-                 deploy=False, nonlinear=None, single_init=False):  # pylint: disable=unused-argument
+                 deploy=False, nonlinear=None, single_init=False):
         super().__init__()
         self.deploy = deploy
 
@@ -1349,8 +1359,8 @@ class OREPA_3x3_RepConv(nn.Module):  # pylint: disable=invalid-name
 
         if self.groups > 1:
             g = self.groups
-            t, ig = weight_rbr_1x1_kxk_conv1.size()  # pylint: disable=unpacking-non-sequence
-            o, tg, h, w = weight_rbr_1x1_kxk_conv2.size()  # pylint: disable=unpacking-non-sequence
+            t, ig = weight_rbr_1x1_kxk_conv1.size()  # pylint unpacking-non-sequence : .size() on a PyTorch tensor returns an unpackable torch.Size, but pylint can't verify this statically from the C-extension type stubs.
+            o, tg, h, w = weight_rbr_1x1_kxk_conv2.size()  # pylint unpacking-non-sequence : .size() on a PyTorch tensor returns an unpackable torch.Size, but pylint can't verify this statically from the C-extension type stubs.
             weight_rbr_1x1_kxk_conv1 = weight_rbr_1x1_kxk_conv1.view(g, int(t/g), ig)
             weight_rbr_1x1_kxk_conv2 = weight_rbr_1x1_kxk_conv2.view(g, int(o/g), tg, h, w)
             weight_rbr_1x1_kxk = (
@@ -1395,14 +1405,14 @@ class OREPA_3x3_RepConv(nn.Module):  # pylint: disable=invalid-name
     def forward(self, inputs):
         """Forward pass."""
         weight = self.weight_gen()
-        out = F.conv2d(  # pylint: disable=not-callable
+        out = F.conv2d(  #
             inputs, weight, bias=None, stride=self.stride,
             padding=self.padding, dilation=self.dilation, groups=self.groups
         )
         return self.nonlinear(self.bn(out))
 
 
-class RepConv_OREPA(nn.Module):  # pylint: disable=invalid-name
+class RepConv_OREPA(nn.Module):
     """RepConv OREPA."""
 
     def __init__(self, c1, c2, k=3, s=1, padding=1, dilation=1, groups=1,
@@ -1473,7 +1483,7 @@ class RepConv_OREPA(nn.Module):  # pylint: disable=invalid-name
         return self.nonlinearity(self.se(out))
 
     # Not used for OREPA
-    def get_custom_L2(self):  # pylint: disable=invalid-name
+    def get_custom_L2(self):
         """Get custom L2 loss."""
         k3 = self.rbr_dense.weight_gen()
         k1 = self.rbr_1x1.conv.weight
@@ -1507,7 +1517,7 @@ class RepConv_OREPA(nn.Module):  # pylint: disable=invalid-name
         """Pad 1x1 kernel to 3x3."""
         if kernel1x1 is None:
             return 0
-        return F.pad(kernel1x1, [1, 1, 1, 1])  # pylint: disable=not-callable
+        return F.pad(kernel1x1, [1, 1, 1, 1])  #
 
     def _fuse_bn_tensor(self, branch):
         """Fuse batch norm tensor."""
@@ -1534,7 +1544,7 @@ class RepConv_OREPA(nn.Module):  # pylint: disable=invalid-name
                 for i in range(self.in_channels):
                     kernel_value[i, i % input_dim, 1, 1] = 1
                 self.register_buffer("id_tensor", torch.from_numpy(kernel_value))
-                self.id_tensor = self.id_tensor.to(branch.weight.device)  # pylint: disable=attribute-defined-outside-init
+                self.id_tensor = self.id_tensor.to(branch.weight.device)  # pylint attribute-defined-outside-init : self.id_tensor is lazily created on first use inside a non-__init__ method so it can be placed on the correct device, which isn't known at construction time.
             kernel = self.id_tensor
             running_mean = branch.running_mean
             running_var = branch.running_var
@@ -1756,7 +1766,7 @@ class SwinTransformerLayer(nn.Module):
             do_pad = True
             pad_r = (self.window_size - w_ % self.window_size) % self.window_size
             pad_b = (self.window_size - h_ % self.window_size) % self.window_size
-            x = F.pad(x, (0, pad_r, 0, pad_b))  # pylint: disable=not-callable
+            x = F.pad(x, (0, pad_r, 0, pad_b))  #
 
         b, c, h, w = x.shape
         l = h * w
@@ -1850,7 +1860,7 @@ class SwinTransformerBlock(nn.Module):
 class STCSPA(nn.Module):
     """CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -1869,7 +1879,7 @@ class STCSPA(nn.Module):
 class STCSPB(nn.Module):
     """CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -1889,7 +1899,7 @@ class STCSPB(nn.Module):
 class STCSPC(nn.Module):
     """CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -1910,7 +1920,7 @@ class STCSPC(nn.Module):
 
 ##### swin transformer v2 #####
 
-class WindowAttention_v2(nn.Module):  # pylint: disable=invalid-name
+class WindowAttention_v2(nn.Module):
     """Window attention v2."""
 
     def __init__(self, dim, window_size, num_heads, qkv_bias=True, attn_drop=0., proj_drop=0.,
@@ -1989,7 +1999,7 @@ class WindowAttention_v2(nn.Module):  # pylint: disable=invalid-name
             qkv_bias = torch.cat(
                 (self.q_bias, torch.zeros_like(self.v_bias, requires_grad=False), self.v_bias)
             )
-        qkv = F.linear(input=x, weight=self.qkv.weight, bias=qkv_bias)  # pylint: disable=not-callable
+        qkv = F.linear(input=x, weight=self.qkv.weight, bias=qkv_bias)  #
         qkv = qkv.reshape(b_, n, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
@@ -2052,7 +2062,7 @@ class WindowAttention_v2(nn.Module):  # pylint: disable=invalid-name
         return flops
 
 
-class Mlp_v2(nn.Module):  # pylint: disable=invalid-name
+class Mlp_v2(nn.Module):
     """MLP v2."""
 
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.SiLU, drop=0.):
@@ -2090,7 +2100,7 @@ def window_reverse_v2(windows, window_size, h, w):
     return x
 
 
-class SwinTransformerLayer_v2(nn.Module):  # pylint: disable=invalid-name
+class SwinTransformerLayer_v2(nn.Module):
     """Swin transformer layer v2."""
 
     def __init__(self, dim, num_heads, window_size=7, shift_size=0,
@@ -2156,7 +2166,7 @@ class SwinTransformerLayer_v2(nn.Module):  # pylint: disable=invalid-name
             do_pad = True
             pad_r = (self.window_size - w_ % self.window_size) % self.window_size
             pad_b = (self.window_size - h_ % self.window_size) % self.window_size
-            x = F.pad(x, (0, pad_r, 0, pad_b))  # pylint: disable=not-callable
+            x = F.pad(x, (0, pad_r, 0, pad_b))  #
 
         b, c, h, w = x.shape
         l = h * w
@@ -2269,7 +2279,7 @@ class SwinTransformer2Block(nn.Module):
 class ST2CSPA(nn.Module):
     """CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -2288,7 +2298,7 @@ class ST2CSPA(nn.Module):
 class ST2CSPB(nn.Module):
     """CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -2308,7 +2318,7 @@ class ST2CSPB(nn.Module):
 class ST2CSPC(nn.Module):
     """CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks."""
 
-    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion  # pylint: disable=unused-argument
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)

@@ -2,8 +2,9 @@
 import cv2
 import numpy as np
 
-
-def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):  # pylint: disable=too-many-arguments,too-many-locals
+# pylint too-many-arguments : letterbox takes 7 parameters (img, new_shape, color, auto, scaleFill, scaleup, stride) to expose all image resizing and padding options at the call site — standard for a general-purpose preprocessing utility used across inference, training, and augmentation.
+# pylint too-many-locals : The function computes many intermediate values (scale ratio, padding dimensions, width/height deltas, border sizes) needed to correctly resize and pad an image while preserving aspect ratio — collapsing them would obscure the geometry.
+def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):
     """Resize and pad image while meeting stride-multiple constraints."""
     shape = img.shape[:2]  # current shape [height, width]
     if isinstance(new_shape, int):

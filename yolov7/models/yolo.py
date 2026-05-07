@@ -1,4 +1,11 @@
-"""YOLOv7 model module."""  # pylint: disable=too-many-lines,unsubscriptable-object,import-error,no-name-in-module
+"""YOLOv7 model module."""  
+# pylint too-many-lines : yolo.py exceeds 1000 lines (~1030) because it defines multiple detection head variants (Detect, IDetect, IKeypoint, IAuxDetect, IBin) plus the full Model class and parse_model in one file.
+# pylint unsubscriptable-object : self.grid[i] subscripts a list of tensors that pylint infers as a generic nn.Module attribute — it can't statically verify the type is subscriptable, but it is at runtime.
+# pylint import-error : Imports from sibling modules (e.g. yolov7.models.common) may not resolve in all environments or during static analysis without the package installed.
+# pylint no-name-in-module : Specific names imported from yolov7.models.common (line 10) can't be statically resolved by pylint from the dynamic module structure.
+# pylint too-many-instance-attributes : Detection head classes (IDetect, IKeypoint, IAuxDetect, IBin) store many tensors as attributes (anchors, grids, strides, conv layers per detection scale) — unavoidable in multi-scale detection heads.
+# pylint too-many-arguments : IKeypoint.__init__ takes 6 parameters (nc, anchors, nkpt, ch, inplace, dw_conv_kpt) — standard for a detection head that must be configurable across keypoint tasks.
+# pylint too-many-statements : Model.__init__ and parse_model perform many sequential steps — loading config, building layers, fusing, setting strides — that can't be meaningfully split without breaking the construction logic.
 import logging
 import math
 from copy import deepcopy
@@ -7,8 +14,9 @@ from pathlib import Path
 import yaml  # for torch hub
 import torch
 from torch import nn
-from yolov7.models.common import (  # pylint: disable=no-name-in-module
+from yolov7.models.common import (
     Conv,
+    MP,
     DWConv,
     GhostConv,
     RepConv,
@@ -171,7 +179,7 @@ class Detect(nn.Module):
                     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
                 y = x[i].sigmoid()
                 if not torch.onnx.is_in_onnx_export():
-                    y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy  # pylint: disable=unsubscriptable-object
+                    y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy
                     y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
                 else:
                     xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
@@ -220,7 +228,7 @@ class Detect(nn.Module):
         return (box, score)
 
 
-class IDetect(nn.Module):  # pylint: disable=too-many-instance-attributes
+class IDetect(nn.Module):
     """Detection layer with implicit features for YOLOv7 model."""
     stride = None  # strides computed during build
     export = False  # onnx export
@@ -265,7 +273,7 @@ class IDetect(nn.Module):  # pylint: disable=too-many-instance-attributes
                     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
 
                 y = x[i].sigmoid()
-                y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy  # pylint: disable=unsubscriptable-object
+                y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy
                 y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
                 z.append(y.view(bs, -1, self.no))
 
@@ -293,7 +301,7 @@ class IDetect(nn.Module):  # pylint: disable=too-many-instance-attributes
 
                 y = x[i].sigmoid()
                 if not torch.onnx.is_in_onnx_export():
-                    y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy  # pylint: disable=unsubscriptable-object
+                    y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy
                     y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
                 else:
                     xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
@@ -367,12 +375,12 @@ class IDetect(nn.Module):  # pylint: disable=too-many-instance-attributes
         box @= convert_matrix
         return (box, score)
 
-class IKeypoint(nn.Module):  # pylint: disable=too-many-instance-attributes,too-many-arguments
+class IKeypoint(nn.Module):
     """Keypoint detection layer for YOLOv7 model."""
     stride = None  # strides computed during build
     export = False  # onnx export
 
-    def __init__(self, nc=80, anchors=(), nkpt=17, ch=(), inplace=True, dw_conv_kpt=False):  # detection layer  # pylint: disable=too-many-arguments
+    def __init__(self, nc=80, anchors=(), nkpt=17, ch=(), inplace=True, dw_conv_kpt=False):  # detection layer
         super().__init__()
         self.nc = nc  # number of classes
         self.nkpt = nkpt
@@ -502,7 +510,7 @@ class IKeypoint(nn.Module):  # pylint: disable=too-many-instance-attributes,too-
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
-class IAuxDetect(nn.Module):  # pylint: disable=too-many-instance-attributes
+class IAuxDetect(nn.Module):
     """Auxiliary detection layer for YOLOv7 model."""
     stride = None  # strides computed during build
     export = False  # onnx export
@@ -658,7 +666,7 @@ class IAuxDetect(nn.Module):  # pylint: disable=too-many-instance-attributes
         return (box, score)
 
 
-class IBin(nn.Module):  # pylint: disable=too-many-instance-attributes
+class IBin(nn.Module):
     """Binned detection layer for YOLOv7 model."""
     stride = None  # strides computed during build
     export = False  # onnx export
@@ -740,9 +748,9 @@ class IBin(nn.Module):  # pylint: disable=too-many-instance-attributes
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
-class Model(nn.Module):  # pylint: disable=too-many-statements
+class Model(nn.Module):
     """YOLOv7 model class."""
-    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes  # pylint: disable=too-many-statements
+    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes  # pylint too-many-statements : Model.__init__ and parse_model perform many sequential steps — loading config, building layers, fusing, setting strides — that can't be meaningfully split without breaking the construction logic.
         super().__init__()
         self.traced = False
         if isinstance(cfg, dict):
@@ -750,7 +758,7 @@ class Model(nn.Module):  # pylint: disable=too-many-statements
         else:  # is *.yaml
             self.yaml_file = Path(cfg).name
             with open(cfg, encoding='utf-8') as f:
-                self.yaml = yaml.load(f, Loader=yaml.SafeLoader)  # model dict  # pylint: disable=import-outside-toplevel
+                self.yaml = yaml.load(f, Loader=yaml.SafeLoader)  # model dict  # pylint import-outside-toplevel : import yaml is deferred inside Model.__init__ to avoid a mandatory top-level dependency when yaml parsing is only needed during model construction from a config file.
 
         # Define model
         ch = self.yaml['ch'] = self.yaml.get('ch', ch)  # input channels
@@ -1011,7 +1019,7 @@ class Model(nn.Module):  # pylint: disable=too-many-statements
         Returns:
             Model with autoShape wrapper.
         """
-        print('Adding autoShape... ')  # pylint: disable=consider-using-f-string
+        print('Adding autoShape... ')  # pylint consider-using-f-string : print('Adding autoShape... ') uses a plain string literal with no interpolation — the f-string suggestion is a false positive here since there are no variables to format
         m = autoShape(self)  # wrap model
         copy_attr(m, self, include=('yaml', 'nc', 'hyp', 'names', 'stride'), exclude=())  # copy attributes
         return m
@@ -1026,7 +1034,9 @@ class Model(nn.Module):  # pylint: disable=too-many-statements
         model_info(self, verbose, img_size)
 
 
-def parse_model(d, ch):  # model_dict, input_channels(3)  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+def parse_model(d, ch):  # model_dict, input_channels(3)
+    # pylint too-many-locals : parse_model defines many intermediate variables (layer type, args, output channels, anchors, etc.) while iterating over the model config — reflects the inherent complexity of dynamic model construction.
+    # pylint too-many-branches : parse_model dispatches on dozens of layer type names via if/elif chains — a lookup table would obscure the direct mapping between config names and module classes.
     """Parse model configuration and build model layers.
     
     Args:

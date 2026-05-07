@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 
-# pylint: disable=too-many-instance-attributes
+# pylint too-many-instance-attributes : Loss classes store many configurable tensors and hyperparameters as attributes (anchor grids, balance weights, loss coefficients, etc.) — unavoidable when a loss function is fully parameterised at construction time
 class SigmoidBin(nn.Module):
     """Sigmoid binning module for regression with bin-based classification.
     
@@ -27,7 +27,7 @@ class SigmoidBin(nn.Module):
     stride = None  # strides computed during build
     export = False  # onnx export
 
-    # pylint: disable=too-many-arguments
+    # pylint too-many-arguments : The loss __call__ or __init__ method accepts many parameters to cover all combinations of box, class, objectness, and anchor loss configuration.
     def __init__(self, bin_count=10, min_val=0.0, max_val=1.0, reg_scale=2.0,
                  use_loss_regression=True, use_fw_regression=True,
                  BCE_weight=1.0, smooth_eps=0.0):
@@ -90,7 +90,7 @@ class SigmoidBin(nn.Module):
 
         return result
 
-    # pylint: disable=too-many-locals
+    # pylint too-many-locals : The loss computation defines many intermediate tensors (targets, anchors, offsets, per-scale losses) that must be named explicitly for mathematical clarity — collapsing them would obscure the loss formula.
     def training_loss(self, pred, target):
         """Compute training loss for bin classification and regression.
         

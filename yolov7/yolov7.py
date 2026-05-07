@@ -1,5 +1,7 @@
 """YOLOv7 object detection module."""
-# pylint: disable=import-error,no-name-in-module
+# pylint import-error : Imports from yolov7 submodules may not resolve during static analysis without the package installed in the environment.
+# pylint no-name-in-module : Specific names imported from those submodules can't be statically resolved by pylint from the dynamic module structure.
+# pylint no-member : Used in three places (lines 66, 97, 126, 285) where pylint can't statically verify that a tensor or model object has a particular method or attribute — these are resolved dynamically at runtime through PyTorch's C-extension types.
 import cv2
 import numpy as np
 import torch
@@ -15,7 +17,8 @@ from yolov7.utils.general import (
 )
 from yolov7.utils.torch_utils import TracedModel
 
-class YOLOv7:  # pylint: disable=too-many-instance-attributes
+# pylint too-many-instance-attributes : YOLOv7 stores many runtime attributes (model, device, stride, class names, confidence thresholds, input size, etc.) — unavoidable for a class that encapsulates the full inference pipeline.
+class YOLOv7:
     """YOLOv7 object detector class.
 
     Attributes
@@ -63,7 +66,7 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
 
     @torch.no_grad()
     def __init__(self, **kwargs):
-        # pylint: disable=no-member
+
         self.__dict__.update(self._defaults)  # set up default values
         self.__dict__.update(kwargs)  # update with user overrides
 
@@ -94,9 +97,9 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
             torch.backends.cudnn.enabled = True
 
         # warm up
-        # pylint: disable=no-member
+
         self._detect([np.zeros((10, 10, 3), dtype=np.uint8)])
-        # pylint: enable=no-member
+
         print('Warmed up!')
 
     @staticmethod
@@ -123,7 +126,7 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
         return self.class_names.index(classname)
 
     def _detect(self, list_of_imgs):
-        # pylint: disable=no-member
+
         if self.bgr:
             list_of_imgs = [
                 cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in list_of_imgs
@@ -141,7 +144,7 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
         batches = []
         for i in range(0, len(images), self.max_batch_size):
             these_imgs = torch.from_numpy(images[i:i+self.max_batch_size])
-        # pylint: enable=no-member
+
             if self.half:
                 these_imgs = these_imgs.half()
             batches.append(these_imgs)
@@ -227,7 +230,7 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
             return all_dets[0]
         return all_dets
 
-    def get_detections_dict(self, frames, classes=None, buffer_ratio=0.0):  # pylint: disable=too-many-locals
+    def get_detections_dict(self, frames, classes=None, buffer_ratio=0.0):  # pylint too-many-locals : get_detections_dict (line 230) and the method at line 279 compute many intermediate values (scaled boxes, padded frames, batch tensors, per-detection crops) needed for the full detection and post-processing pipeline.
         '''
         Parameters
         ----------
@@ -276,17 +279,19 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
         box_format='ltrb',
         classes=None,
         buffer_ratio=0.0,
-    ):  # pylint: disable=too-many-locals,too-many-arguments
+    ):
+        # pylint too-many-locals : get_detections_dict (line 230) and the method at line 279 compute many intermediate values (scaled boxes, padded frames, batch tensors, per-detection crops) needed for the full detection and post-processing pipeline.
+        # pylint too-many-arguments : The method at line 279 accepts multiple parameters to expose all inference options (frames, classes, thresholds, buffer ratio, etc.) at the call site.
         class_idxs = (
             [self.classname_to_idx(name) for name in classes]
             if classes is not None
             else None
         )
-        # pylint: disable=no-member
+
         preds = non_max_suppression(
             boxes, self.conf_thresh, self.nms_thresh, classes=class_idxs
         )
-        # pylint: enable=no-member
+
 
         detections = []
         for i, frame_bbs in enumerate(preds):
@@ -338,3 +343,4 @@ class YOLOv7:  # pylint: disable=too-many-instance-attributes
             detections.append(frame_dets)
 
         return detections
+    

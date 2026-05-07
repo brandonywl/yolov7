@@ -99,9 +99,12 @@ def box_iou(box1, box2):
     inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
-
-def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,  # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
-                        labels=()):  # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
+# pylint too-many-arguments : The function takes 7 parameters (prediction, conf_thres, iou_thres, classes, agnostic, multi_label, labels) to expose all NMS tunables at the call site — standard for a general-purpose NMS utility.
+# pylint too-many-locals : NMS requires many intermediate variables (candidate boxes, scores, indices, per-class masks, IoU matrices) that must stay named for clarity — collapsing them would make the algorithm unreadable.
+# pylint too-many-branches : The function branches on agnostic, multi_label, classes, and per-image filtering logic — each branch handles a distinct NMS mode and can't be easily factored out without splitting the hot path.
+# pylint too-many-statements : The full NMS pipeline (threshold filtering → per-class batching → IoU computation → index selection) is inherently long and sequential; splitting it into sub-functions would obscure the single-pass design.
+def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
+                        labels=()):
     """Run Non-Maximum Suppression (NMS) on inference results.
 
     Args:
